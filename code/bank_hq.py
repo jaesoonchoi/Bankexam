@@ -71,7 +71,7 @@ class Dialog(QtGui.QDialog):
         self.btgBox.setLayout(lOut)
 
     def openFileDialog(self):
-        _buttonNum = self.getDataTypeNum();
+        _buttonNum = self.getDataTypeNum()
         if _buttonNum == -1:
             errBox = QtGui.QMessageBox();errBox.setWindowTitle(u'경고')
             errBox.setText(u'데이터 구분을 선택하셔야 합니다.')
