@@ -1,4 +1,6 @@
+#-*- coding: utf-8 -*-
 #!/usr/bin/env python
+
 
 import os, random, sys, hashlib, struct, _thread, socket
 from pyftpdlib.authorizers import DummyAuthorizer
@@ -124,6 +126,52 @@ def encrypt(filepath):
                 chunk += ' ' * (16 - len(chunk) % 16)    # if the chunk's size is not a multiple of 16 bytes, it needs to be padded so that it can be block encrypted. So add spaces as paddinig
             outFile.write(encryptor.encrypt(chunk))        # encrypt the chunk and write the encrypted chunk to the file
     
+    outFile.close()
+    print("[+] Encryption successful!")
+    return out_filename                # return the encrypted file's path to the caller (client)
+
+
+def encrypt2(filepath):
+    print("[!] Starting Encryption....")
+    aes_key = os.urandom(32)            # generate a 32 bit secret key using the random number generator
+    out_filename = filepath + ".enc"
+    #파일 인코딩 방식으로 발생하는 오류를 방지하기 위해
+    try:
+        f_open = open(filepath,encoding='utf-8')
+    except UnicodeDecodeError:
+        f_open = open(filepath,encoding='cp949')
+
+    filehash = hashlib.md5(f_open.read().encode('utf-8')).hexdigest()        # calculate the MD5 hash of the file to be sent
+
+    public_key_loc = PUB_KEY_LOC
+    #public key encryption of the symmetric key
+    pubkey = open(public_key_loc, "r").read()            # open the SSH public key of the destination server
+    rsakey = RSA.importKey(pubkey)                        # import the public key
+    rsakey = PKCS1_OAEP.new(rsakey)                        # create the cipher using OAEP with RSA
+    encKey = rsakey.encrypt(aes_key)                    # encrypt the generated 21 bit AES key to be shared with the server
+    outFile = open(out_filename,"w+")                    # Open a new file which will be our encrypted file
+
+    outFile.write(filehash)                            # write the calculated MD5 hash of the original file at the begining of the file
+
+    outFile.write(encKey)                            # then, write the encrypted AES key, to the file
+
+    iv = ''.join(chr(random.randint(0, 0xFF)) for i in range(16))    # generate a 16 byte IV - Initialization vector which is used by AES algorithm with CBC to encrypt the first block of the file
+    encryptor = AES.new(aes_key, AES.MODE_CBC, iv)    # create a new encryptor object
+    filesize = os.path.getsize(filepath)            # calculate the size of the original file which we are going to encrypt
+    chunksize=64*1024                                # initialize chunk size for block encryption
+
+    with open(filepath, 'rb') as infile:
+        outFile.write(struct.pack('<Q', filesize))     # interpret the data string of the file as a packed binary data. This is needed at the destination to truncate the file to its original size.
+        outFile.write(iv)                            # write the generated IV to the file. IV is needed by the destination to decrypt only the first block of encrypted data
+
+        while True:
+            chunk = infile.read(chunksize)            # read a chunk of data from the file
+            if len(chunk) == 0:
+                break                                # if the chunk is empty, obviously file has been completed reading. So break the reading operation
+            elif len(chunk) % 16 != 0:
+                chunk += ' ' * (16 - len(chunk) % 16)    # if the chunk's size is not a multiple of 16 bytes, it needs to be padded so that it can be block encrypted. So add spaces as paddinig
+            outFile.write(encryptor.encrypt(chunk))        # encrypt the chunk and write the encrypted chunk to the file
+
     outFile.close()
     print("[+] Encryption successful!")
     return out_filename                # return the encrypted file's path to the caller (client)
