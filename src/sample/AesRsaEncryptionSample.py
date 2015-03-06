@@ -180,7 +180,7 @@ def startServer():
     authorizer = DummyAuthorizer()        # create a new FTP authorizer
     
     authorizer.add_anonymous(USER_HOME + "/anonymous", perm='elradfmwM') # add anonymous user, set the directory for anonymous file uploads and give enough permissions to the anonymous user
-    # permissions are denoted by the charactors 'elradfmwM'. To see what they means please visit, https://code.google.com/p/pyftpdlib/wiki/Tutorial
+    # permissions are denoted by the charactors 'elradfmwM'. To see what they means please visit, https://src.google.com/p/pyftpdlib/wiki/Tutorial
     
     handler = MyHandler                   # select the created custom FTP hander 
     handler.authorizer = authorizer     # assign the authorizer to the handler
